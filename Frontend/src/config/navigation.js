@@ -1,11 +1,10 @@
-import { Activity, History, Home, SlidersHorizontal, UserRound } from 'lucide-react'
+import { Activity, History, Home, UserRound } from 'lucide-react'
 
 export const NAV_ITEMS = [
   { id: 'overview', label: 'Tổng quan', icon: Home },
   { id: 'sensors', label: 'Lịch sử cảm biến', icon: Activity },
-  { id: 'devices', label: 'Điều khiển thiết bị', icon: SlidersHorizontal },
   { id: 'history', label: 'Lịch sử bật/tắt', icon: History },
-  { id: 'profile', label: 'Thông tin cá nhân', icon: UserRound },
+  { id: 'profile', label: 'Thông tin cá nhân', icon: UserRound }
 ]
 
 export const PAGE_TITLES = Object.fromEntries(

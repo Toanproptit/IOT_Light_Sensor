@@ -18,13 +18,17 @@
   --green-soft: #e7f5ec;
   --dark: #1e2521;
   --shadow: 0 12px 40px rgba(30, 45, 35, 0.055);
+  --font-size-caption: 10px;
+  --font-size-small: 12px;
+  --font-size-body: 14px;
+  --font-size-section: 16px;
 }
 
 * { box-sizing: border-box; }
 
 html { min-width: 320px; background: #f2f4f2; }
 
-body { margin: 0; min-width: 320px; min-height: 100vh; }
+body { margin: 0; min-width: 320px; min-height: 100vh; font-size: var(--font-size-body); line-height: 1.5; }
 
 button, input, select { font: inherit; }
 
@@ -39,4 +43,15 @@ a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
 
 h1, h2, h3, .brand strong { font-family: 'Manrope', 'DM Sans', sans-serif; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
 

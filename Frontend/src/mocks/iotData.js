@@ -16,9 +16,9 @@ export const initialDevices = [
 
 export const activityRows = [
   { id: '#1042', device: 'LED 01', room: 'Phòng IoT 01', action: 'Bật thiết bị', status: 'success', timestamp: '2026-08-18T10:45:14', time: '10:45:14 AM', date: '18/08/2026', user: 'Nguyễn Trọng Toàn' },
-  { id: '#1041', device: 'LED 02', room: 'Phòng IoT 01', action: 'Độ sáng 60%', status: 'success', timestamp: '2026-08-18T10:32:41', time: '10:32:41 AM', date: '18/08/2026', user: 'Nguyễn Trọng Toàn' },
+  { id: '#1041', device: 'LED 02', room: 'Phòng IoT 01', action: 'Tắt thiết bị', status: 'success', timestamp: '2026-08-18T10:32:41', time: '10:32:41 AM', date: '18/08/2026', user: 'Nguyễn Trọng Toàn' },
   { id: '#1040', device: 'LED 03', room: 'Phòng IoT 01', action: 'Tắt thiết bị', status: 'success', timestamp: '2026-08-18T09:18:26', time: '09:18:26 AM', date: '18/08/2026', user: 'Nguyễn Trọng Toàn' },
-  { id: '#1039', device: 'LED 01', room: 'Phòng IoT 01', action: 'Độ sáng 80%', status: 'success', timestamp: '2026-08-18T08:30:08', time: '08:30:08 AM', date: '18/08/2026', user: 'Nguyễn Trọng Toàn' },
+  { id: '#1039', device: 'LED 01', room: 'Phòng IoT 01', action: 'Bật thiết bị', status: 'success', timestamp: '2026-08-18T08:30:08', time: '08:30:08 AM', date: '18/08/2026', user: 'Nguyễn Trọng Toàn' },
   { id: '#1038', device: 'LED 02', room: 'Phòng IoT 01', action: 'Mất kết nối', status: 'failed', timestamp: '2026-08-17T23:30:52', time: '11:30:52 PM', date: '17/08/2026', user: 'Nguyễn Trọng Toàn' },
 ]
 

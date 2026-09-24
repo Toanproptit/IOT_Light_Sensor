@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink, Lightbulb, Search } from 'lucide-react'
+import { Lightbulb, Search } from 'lucide-react'
 import PageIntro from '../../components/common/PageIntro'
 import {
   DataTableHead,
@@ -8,43 +8,90 @@ import {
   TableFooter,
 } from '../../components/common/DataTable'
 import { activityRows } from '../../mocks/iotData'
-import { matchesDateTime } from '../../utils/dateTime'
+import { matchesTimeText } from '../../utils/dateTime'
 
 const DEVICE_OPTIONS = [...new Set(activityRows.map((row) => row.device))]
 
+const getActionClassName = (actionName) => {
+  if (actionName === 'Mất kết nối') return 'action-chip disconnected'
+  if (actionName.startsWith('Tắt')) return 'action-chip off'
+  return 'action-chip'
+}
+
 export default function ActivityHistoryPage() {
-  const [query, setQuery] = useState('')
   const [device, setDevice] = useState('all')
   const [action, setAction] = useState('all')
   const [status, setStatus] = useState('all')
-  const [dateTime, setDateTime] = useState('')
+  const [timeQuery, setTimeQuery] = useState('')
+  const [appliedTimeQuery, setAppliedTimeQuery] = useState('')
+  const [sortDirection, setSortDirection] = useState('desc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
 
   const filteredRows = useMemo(() => activityRows.filter((row) => {
-    const textMatch = `${row.id} ${row.device} ${row.room}`.toLowerCase().includes(query.toLowerCase())
     const deviceMatch = device === 'all' || row.device === device
     const actionMatch = action === 'all' || row.action.toLowerCase().includes(action)
     const statusMatch = status === 'all' || row.status === status
-    const timeMatch = matchesDateTime(row.timestamp, dateTime)
-    return textMatch && deviceMatch && actionMatch && statusMatch && timeMatch
-  }), [query, device, action, status, dateTime])
+    const timeMatch = matchesTimeText(row, appliedTimeQuery)
+    return deviceMatch && actionMatch && statusMatch && timeMatch
+  }), [device, action, status, appliedTimeQuery])
+
+  const sortedRows = useMemo(() => [...filteredRows].sort((firstRow, secondRow) => {
+    const comparison = Date.parse(firstRow.timestamp) - Date.parse(secondRow.timestamp)
+    return sortDirection === 'asc' ? comparison : -comparison
+  }), [filteredRows, sortDirection])
+
+  const maxPage = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+  const visibleRows = sortedRows.slice((page - 1) * pageSize, page * pageSize)
+
+  const updateFilter = (setter) => (event) => {
+    setter(event.target.value)
+    setPage(1)
+  }
+
+  const toggleTimeSort = () => {
+    setSortDirection((currentDirection) => (currentDirection === 'desc' ? 'asc' : 'desc'))
+    setPage(1)
+  }
+
+  const handleTimeSearch = (event) => {
+    event.preventDefault()
+    setAppliedTimeQuery(timeQuery.trim())
+    setPage(1)
+  }
+
+  const handlePageSizeChange = (nextPageSize) => {
+    setPageSize(nextPageSize)
+    setPage(1)
+  }
 
   return (
     <div className="page">
       <PageIntro
         eyebrow="Nhật ký hệ thống"
         title="Lịch sử bật/tắt"
-        description="Kiểm tra mọi thao tác điều khiển thiết bị trong hệ thống."
-        action={<button className="secondary-button"><ExternalLink size={16} /> Tải báo cáo</button>}
       />
 
       <section className="card table-card">
-        <div className="filters history-filters">
-          <label className="search-field">
-            <Search size={17} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm mã, tên hoặc phòng..." />
-          </label>
+        <form className="filters history-filters" onSubmit={handleTimeSearch}>
+          <div className="search-control with-hint">
+            <label className="search-field">
+              <Search size={17} />
+              <input
+                type="text"
+                aria-label="Nhập thời gian cần tìm"
+                aria-describedby="activity-time-hint"
+                value={timeQuery}
+                onChange={(event) => setTimeQuery(event.target.value)}
+                placeholder="VD: 10:45 hoặc 18/08/2026 10:45"
+              />
+            </label>
+            <small className="time-input-hint" id="activity-time-hint">
+              Định dạng: HH:mm, HH:mm:ss AM/PM hoặc DD/MM/YYYY HH:mm
+            </small>
+          </div>
           <label className="select-field">
-            <select aria-label="Lọc theo tên thiết bị" value={device} onChange={(event) => setDevice(event.target.value)}>
+            <select aria-label="Lọc theo tên thiết bị" value={device} onChange={updateFilter(setDevice)}>
               <option value="all">Tất cả thiết bị</option>
               {DEVICE_OPTIONS.map((deviceName) => (
                 <option value={deviceName} key={deviceName}>{deviceName}</option>
@@ -52,48 +99,62 @@ export default function ActivityHistoryPage() {
             </select>
           </label>
           <label className="select-field">
-            <select value={action} onChange={(event) => setAction(event.target.value)}>
+            <select value={action} onChange={updateFilter(setAction)}>
               <option value="all">Tất cả hành động</option>
               <option value="bật">Bật thiết bị</option>
               <option value="tắt">Tắt thiết bị</option>
-              <option value="độ sáng">Đổi độ sáng</option>
+              <option value="mất kết nối">Mất kết nối</option>
             </select>
           </label>
           <label className="select-field">
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <select value={status} onChange={updateFilter(setStatus)}>
               <option value="all">Tất cả trạng thái</option>
               <option value="success">Thành công</option>
               <option value="failed">Thất bại</option>
             </select>
           </label>
-          <label className="date-field date-time-filter">
-            <span>Thời gian</span>
-            <input
-              aria-label="Lọc theo thời gian"
-              type="datetime-local"
-              step="1"
-              value={dateTime}
-              onChange={(event) => setDateTime(event.target.value)}
-            />
-          </label>
-        </div>
+          <button type="submit" className="activity-search-button">
+            <Search size={16} />
+            Tìm
+          </button>
+        </form>
 
-        <DataTableHead columns={['Thiết bị', 'Hành động', 'Người thực hiện', 'Trạng thái', 'Thời gian']} />
+        <DataTableHead
+          columns={[
+            'Thiết bị',
+            'Hành động',
+            'Người thực hiện',
+            'Trạng thái',
+            {
+              key: 'time',
+              label: 'Thời gian',
+              direction: sortDirection,
+              onSort: toggleTimeSort,
+            },
+          ]}
+        />
         <div className="table-body history-table">
-          {filteredRows.length ? filteredRows.map((row) => (
+          {visibleRows.length ? visibleRows.map((row) => (
             <div className="table-row" key={row.id}>
               <span className="sensor-name">
                 <i className="sensor-dot device"><Lightbulb size={15} /></i>
                 <span>{row.device}<small>{row.room}</small></span>
               </span>
-              <span className={`action-chip ${row.action.includes('Tắt') ? 'off' : ''}`}>{row.action}</span>
+              <span className={getActionClassName(row.action)}>{row.action}</span>
               <span>{row.user}</span>
               <StatusBadge status={row.status} />
               <span>{row.time}<small>{row.date}</small></span>
             </div>
           )) : <EmptyState />}
         </div>
-        <TableFooter count={filteredRows.length} page={1} maxPage={1} onPage={() => {}} />
+        <TableFooter
+          count={filteredRows.length}
+          page={page}
+          maxPage={maxPage}
+          pageSize={pageSize}
+          onPage={setPage}
+          onPageSize={handlePageSizeChange}
+        />
       </section>
     </div>
   )

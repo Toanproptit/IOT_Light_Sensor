@@ -12,11 +12,7 @@ export default function Sidebar({ active, onNavigate, open, onClose }) {
     <>
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <Brand />
-        <div className="workspace-pill">
-          <div className="workspace-icon">LH</div>
-          <div><strong>Phòng IoT 01</strong><span>LED & Sensor</span></div>
-          <ChevronDown size={15} />
-        </div>
+        
 
         <span className="nav-caption">Không gian làm việc</span>
         <nav>

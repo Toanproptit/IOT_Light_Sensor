@@ -6,10 +6,6 @@ export default function MetricCard({ label, value, unit, trend, icon: Icon, tone
         <span className="metric-icon"><Icon size={18} /></span>
       </div>
       <div className="metric-value">{value}<small>{unit}</small></div>
-      <div className="metric-foot">
-        <span className="trend-up">↗ {trend}</span>
-        <span>so với hôm qua</span>
-      </div>
     </article>
   )
 }

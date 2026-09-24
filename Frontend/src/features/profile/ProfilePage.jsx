@@ -1,25 +1,25 @@
+import { useState } from 'react'
 import {
   BookOpen,
-  Box,
+  Camera,
   Code2,
   ExternalLink,
   GitBranch,
-  Lightbulb,
   Palette,
-  ShieldCheck,
 } from 'lucide-react'
 import PageIntro from '../../components/common/PageIntro'
+import profileImage from './profile.jpg'
 
 const PROFILE_LINKS = [
-  { label: 'GitHub', description: 'Source code dự án', href: 'https://github.com/', icon: GitBranch, className: 'github' },
+  { label: 'GitHub', description: 'Source code dự án', href: 'https://github.com/Toanproptit/IOT_Light_Sensor.git', icon: GitBranch, className: 'github' },
   { label: 'Figma', description: 'UI/UX Design', href: 'https://www.figma.com/', icon: Palette, className: 'figma' },
   { label: 'Project Docs', description: 'Tài liệu dự án', href: '#project-docs', icon: BookOpen, className: 'docs' },
   { label: 'API Document', description: 'REST API Reference', href: '/docs/API_DOCUMENTATION.md', icon: Code2, className: 'api' },
 ]
 
-function InfoField({ label, value, wide }) {
+function InfoField({ label, value }) {
   return (
-    <div className={`info-field ${wide ? 'wide' : ''}`}>
+    <div className="info-field">
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -45,56 +45,55 @@ function ProjectLink({ link }) {
 }
 
 export default function ProfilePage() {
+  const [avatarUrl, setAvatarUrl] = useState(profileImage)
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+
+    const reader = new FileReader()
+    reader.onload = () => setAvatarUrl(typeof reader.result === 'string' ? reader.result : '')
+    reader.readAsDataURL(file)
+  }
+
   return (
     <div className="page profile-page">
       <PageIntro
         eyebrow="Tài khoản"
         title="Thông tin cá nhân"
-        description="Quản lý hồ sơ, quyền truy cập và tài nguyên dự án của bạn."
       />
 
-      <div className="profile-grid">
-        <section className="profile-hero card">
-          <div className="profile-cover">
-            <span className="cover-orb orb-one" />
-            <span className="cover-orb orb-two" />
-            <Lightbulb size={52} />
-          </div>
-          <div className="profile-main">
-            <div className="avatar profile-avatar">TT<span className="online-dot" /></div>
-            <div className="profile-identity">
-              <div className="verified"><span>Đang hoạt động</span><ShieldCheck size={15} /></div>
-              <h2>Nguyễn Trọng Toàn</h2>
-              <p>Sinh viên PTIT · IoT Developer</p>
-            </div>
-            <div className="profile-actions">
-              <button className="dark-button">Chỉnh sửa hồ sơ</button>
-              <button className="secondary-button">Đổi mật khẩu</button>
-            </div>
-          </div>
-        </section>
-
-        <aside className="profile-side">
-          <div className="card profile-stat">
-            <span><Box size={20} /></span>
-            <div><strong>03</strong><small>Đèn LED quản lý</small></div>
-          </div>
-          <div className="card account-plan">
-            <span>Gói tài khoản</span><strong>Pro</strong><small>Đang hoạt động</small>
-          </div>
-        </aside>
-
-        <section className="card details-card">
+      <div className='profile-stack'>
+        <section className='card details-card'>
           <div className="section-head">
             <div><h2>Thông tin chi tiết</h2><p>Thông tin học tập và liên hệ</p></div>
-            <span className="permission"><ShieldCheck size={15} /> Quyền truy cập: Full</span>
           </div>
-          <div className="detail-grid">
-            <InfoField label="Họ và tên" value="Nguyễn Trọng Toàn" />
-            <InfoField label="Mã sinh viên" value="B23DCCN833" />
-            <InfoField label="Học viện" value="PTIT" />
-            <InfoField label="Email" value="b23dccn833@stu.ptit.edu.vn" wide />
-            <InfoField label="Khu vực thực hành" value="Phòng IoT 01 · PTIT" wide />
+          <div className='profile-details-layout'>
+            <div className='avatar-upload'>
+              <label className='profile-avatar-picker'>
+                <span className='profile-avatar-image'>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt='Ảnh đại diện đã chọn' />
+                  ) : (
+                    <span>TT</span>
+                  )}
+                </span>
+                <i><Camera size={16} /></i>
+                <input
+                  type='file'
+                  accept='image/png,image/jpeg,image/webp'
+                  onChange={handleAvatarChange}
+                />
+              </label>
+              <strong>Ảnh đại diện</strong>
+            </div>
+
+            <div className="detail-grid">
+              <InfoField label="Họ và tên" value="Nguyễn Trọng Toàn" />
+              <InfoField label="Mã sinh viên" value="B23DCCN833" />
+              <InfoField label="Học viện" value="PTIT" />
+              <InfoField label="Email" value="b23dccn833@stu.ptit.edu.vn" />
+            </div>
           </div>
         </section>
 

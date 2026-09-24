@@ -1,5 +1,18 @@
-export function matchesDateTime(timestamp, dateTime) {
-  if (!dateTime) return true
+const normalizeTimeText = (value) => String(value).trim().toLocaleLowerCase('vi')
 
-  return Math.floor(Date.parse(timestamp) / 1000) === Math.floor(Date.parse(dateTime) / 1000)
+export function matchesTimeText(row, query) {
+  const normalizedQuery = normalizeTimeText(query)
+  if (!normalizedQuery) return true
+
+  const isoTime = row.timestamp?.split('T')[1] ?? ''
+  const searchableText = [
+    row.time,
+    row.date,
+    row.timestamp,
+    row.timestamp?.replace('T', ' '),
+    `${row.date} ${row.time}`,
+    `${row.date} ${isoTime}`,
+  ].join(' ')
+
+  return normalizeTimeText(searchableText).includes(normalizedQuery)
 }

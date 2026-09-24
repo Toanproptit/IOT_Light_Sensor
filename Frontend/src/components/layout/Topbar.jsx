@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { PAGE_TITLES } from '../../config/navigation'
+import profileImage from '../../features/profile/profile.jpg'
 
 export default function Topbar({ page, onMenu }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -31,7 +32,9 @@ export default function Topbar({ page, onMenu }) {
         <button className="icon-button" aria-label="Cài đặt"><Settings size={19} /></button>
         <div className="top-divider" />
         <button className="user-menu">
-          <div className="avatar avatar-small">TT</div>
+          <div className="avatar avatar-small">
+            <img src={profileImage} alt="Ảnh đại diện" />
+          </div>
           <div><strong>Trọng Toàn</strong><span>Sinh viên PTIT</span></div>
           <ChevronDown size={15} />
         </button>

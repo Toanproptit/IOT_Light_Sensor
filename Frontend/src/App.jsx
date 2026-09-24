@@ -1,17 +1,14 @@
 import { useCallback, useState } from 'react'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Toast from './components/common/Toast'
 import DashboardLayout from './components/layout/DashboardLayout'
-import { DEFAULT_PAGE } from './config/navigation'
 import ActivityHistoryPage from './features/activity/ActivityHistoryPage'
-import DeviceControlPage from './features/devices/DeviceControlPage'
 import OverviewPage from './features/overview/OverviewPage'
 import ProfilePage from './features/profile/ProfilePage'
 import SensorHistoryPage from './features/sensors/SensorHistoryPage'
-import useHashNavigation from './hooks/useHashNavigation'
 import { initialDevices } from './mocks/iotData'
 
-export default function App() {
-  const { activePage, navigate } = useHashNavigation()
+function AppRoutes() {
   const [devices, setDevices] = useState(initialDevices)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState('')
@@ -26,12 +23,6 @@ export default function App() {
     setToast(`${targetDevice.name} đã được ${targetDevice.on ? 'tắt' : 'bật'}`)
   }
 
-  const changeBrightness = (id, brightness) => {
-    setDevices((currentDevices) => currentDevices.map((device) => (
-      device.id === id ? { ...device, brightness, updated: 'Vừa xong' } : device
-    )))
-  }
-
   const turnAllDevicesOff = () => {
     setDevices((currentDevices) => currentDevices.map((device) => ({
       ...device,
@@ -41,35 +32,55 @@ export default function App() {
     setToast('Đã tắt tất cả thiết bị')
   }
 
-  const closeToast = useCallback(() => setToast(''), [])
-
-  const pages = {
-    overview: <OverviewPage devices={devices} onToggle={toggleDevice} onNavigate={navigate} />,
-    sensors: <SensorHistoryPage />,
-    devices: (
-      <DeviceControlPage
-        devices={devices}
-        onToggle={toggleDevice}
-        onBrightness={changeBrightness}
-        onAllOff={turnAllDevicesOff}
-      />
-    ),
-    history: <ActivityHistoryPage />,
-    profile: <ProfilePage />,
+  const turnAllDevicesOn = () => {
+    setDevices((currentDevices) => currentDevices.map((device) => ({
+      ...device,
+      on: true,
+      updated: 'Vừa xong',
+    })))
+    setToast('Đã bật tất cả thiết bị')
   }
+
+  const closeToast = useCallback(() => setToast(''), [])
 
   return (
     <>
-      <DashboardLayout
-        activePage={activePage}
-        sidebarOpen={sidebarOpen}
-        onNavigate={navigate}
-        onOpenMenu={() => setSidebarOpen(true)}
-        onCloseMenu={() => setSidebarOpen(false)}
-      >
-        {pages[activePage] ?? pages[DEFAULT_PAGE]}
-      </DashboardLayout>
+      <Routes>
+        <Route
+          element={(
+            <DashboardLayout
+              sidebarOpen={sidebarOpen}
+              onOpenMenu={() => setSidebarOpen(true)}
+              onCloseMenu={() => setSidebarOpen(false)}
+            />
+          )}
+        >
+          <Route
+            index
+            element={(
+              <OverviewPage
+                devices={devices}
+                onToggle={toggleDevice}
+                onAllOn={turnAllDevicesOn}
+                onAllOff={turnAllDevicesOff}
+              />
+            )}
+          />
+          <Route path='sensors' element={<SensorHistoryPage />} />
+          <Route path='history' element={<ActivityHistoryPage />} />
+          <Route path='profile' element={<ProfilePage />} />
+          <Route path='*' element={<Navigate to='/' replace />} />
+        </Route>
+      </Routes>
       {toast && <Toast message={toast} onClose={closeToast} />}
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <HashRouter>
+      <AppRoutes />
+    </HashRouter>
   )
 }
