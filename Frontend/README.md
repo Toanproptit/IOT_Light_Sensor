@@ -1,6 +1,6 @@
 # Lumina IoT Dashboard
 
-Frontend React/Vite mô phỏng hệ thống điều khiển đèn và theo dõi cảm biến IoT.
+Frontend React/Vite của hệ thống điều khiển đèn và theo dõi cảm biến IoT. Dữ liệu được lấy từ Spring Boot REST API; backend là thành phần kết nối MQTT với ESP32.
 
 ## Cấu trúc thư mục
 
@@ -40,6 +40,8 @@ src/
 npm install
 npm run dev
 ```
+
+Tạo `.env` từ `.env.example` nếu backend không chạy tại `http://localhost:8080/api`. Sau khi mở ứng dụng, đăng nhập bằng tài khoản được cấu hình qua `APP_EMAIL` và `APP_PASSWORD` ở backend.
 
 Kiểm tra trước khi bàn giao:
 

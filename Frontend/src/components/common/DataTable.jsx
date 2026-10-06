@@ -55,9 +55,24 @@ export function EmptyState() {
   )
 }
 
+function getVisiblePages(page, maxPage) {
+  if (maxPage <= 7) return Array.from({ length: maxPage }, (_, index) => index + 1)
+
+  const pages = [1]
+  const start = Math.max(2, page - 1)
+  const end = Math.min(maxPage - 1, page + 1)
+
+  if (start > 2) pages.push('left-ellipsis')
+  for (let number = start; number <= end; number += 1) pages.push(number)
+  if (end < maxPage - 1) pages.push('right-ellipsis')
+  pages.push(maxPage)
+  return pages
+}
+
 export function TableFooter({ count, page, maxPage, pageSize, onPage, onPageSize }) {
   const firstRow = count ? (page - 1) * pageSize + 1 : 0
   const lastRow = Math.min(page * pageSize, count)
+  const visiblePages = getVisiblePages(page, maxPage)
 
   return (
     <div className="table-footer">
@@ -80,16 +95,17 @@ export function TableFooter({ count, page, maxPage, pageSize, onPage, onPageSize
         <button type="button" disabled={page === 1} onClick={() => onPage(page - 1)}>
           <ChevronLeft size={15} />
         </button>
-        {Array.from({ length: maxPage }, (_, index) => (
+        {visiblePages.map((pageNumber) => typeof pageNumber === 'number' ? (
           <button
-            key={index}
+            key={pageNumber}
             type="button"
-            className={page === index + 1 ? 'active' : ''}
-            onClick={() => onPage(index + 1)}
+            className={page === pageNumber ? 'active' : ''}
+            aria-current={page === pageNumber ? 'page' : undefined}
+            onClick={() => onPage(pageNumber)}
           >
-            {index + 1}
+            {pageNumber}
           </button>
-        ))}
+        ) : <span aria-hidden="true" key={pageNumber}>…</span>)}
         <button type="button" disabled={page === maxPage} onClick={() => onPage(page + 1)}>
           <ChevronRight size={15} />
         </button>

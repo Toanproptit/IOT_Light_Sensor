@@ -1,4 +1,4 @@
-export default function MetricCard({ label, value, unit, trend, icon: Icon, tone }) {
+export default function MetricCard({ label, value, unit, icon: Icon, tone }) {
   return (
     <article className={`metric-card ${tone}`}>
       <div className="metric-head">

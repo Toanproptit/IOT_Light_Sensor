@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Droplets, Search, Sun, Thermometer } from 'lucide-react'
 import PageIntro from '../../components/common/PageIntro'
 import {
@@ -7,8 +7,8 @@ import {
   StatusBadge,
   TableFooter,
 } from '../../components/common/DataTable'
-import { sensorRows } from '../../mocks/iotData'
-import { matchesTimeText } from '../../utils/dateTime'
+import { iotApi } from '../../services/iotApi'
+import { formatApiDateTime } from '../../utils/dateTime'
 
 const SENSOR_ICONS = {
   temperature: Thermometer,
@@ -17,6 +17,9 @@ const SENSOR_ICONS = {
 }
 
 export default function SensorHistoryPage() {
+  const [sensorRows, setSensorRows] = useState([])
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [searchField, setSearchField] = useState('all')
   const [searchInput, setSearchInput] = useState('')
   const [appliedSearch, setAppliedSearch] = useState(null)
@@ -24,36 +27,36 @@ export default function SensorHistoryPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(5)
 
-  const filteredRows = useMemo(() => {
-    if (!appliedSearch) return sensorRows
-
-    if (appliedSearch.field === 'time') {
-      return sensorRows.filter((row) => (
-        matchesTimeText(row, appliedSearch.value)
-      ))
-    }
-
-    if (appliedSearch.field === 'all') {
-      const query = appliedSearch.value.toLocaleLowerCase('vi')
-      return sensorRows.filter((row) => (
-        [row.id, row.sensor, row.value, row.unit, row.time, row.date, row.status]
-          .some((value) => String(value).toLocaleLowerCase('vi').includes(query))
-      ))
-    }
-
-    return sensorRows.filter((row) => (
-      row.type === appliedSearch.field
-      && String(row.value).includes(appliedSearch.value)
-    ))
-  }, [appliedSearch])
-
-  const sortedRows = useMemo(() => [...filteredRows].sort((firstRow, secondRow) => {
-    const comparison = Date.parse(firstRow.timestamp) - Date.parse(secondRow.timestamp)
-    return sortDirection === 'asc' ? comparison : -comparison
-  }), [filteredRows, sortDirection])
-
-  const maxPage = Math.max(1, Math.ceil(filteredRows.length / pageSize))
-  const visibleRows = sortedRows.slice((page - 1) * pageSize, page * pageSize)
+  useEffect(() => {
+    let active = true
+    const load = () => iotApi.getSensorHistory({
+      page,
+      limit: pageSize,
+      direction: sortDirection,
+      ...(appliedSearch ? { field: appliedSearch.field, value: appliedSearch.value } : {}),
+    }).then((result) => {
+      if (!active) return
+      setSensorRows(result.items.map((row) => ({
+        id: row.id,
+        sensor: row.sensorName,
+        type: row.type,
+        value: row.value,
+        unit: row.unit,
+        status: row.status,
+        ...formatApiDateTime(row.recordedAt),
+      })))
+      setTotalItems(result.pagination.totalItems)
+      setTotalPages(Math.max(1, result.pagination.totalPages))
+    }).catch(() => {
+      if (!active) return
+      setSensorRows([])
+      setTotalItems(0)
+      setTotalPages(1)
+    })
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [appliedSearch, page, pageSize, sortDirection])
 
   const handleFieldChange = (event) => {
     setSearchField(event.target.value)
@@ -154,7 +157,7 @@ export default function SensorHistoryPage() {
           ]}
         />
         <div className="table-body sensor-table">
-          {visibleRows.length ? visibleRows.map((row) => {
+          {sensorRows.length ? sensorRows.map((row) => {
             const Icon = SENSOR_ICONS[row.type]
             return (
               <div className="table-row" key={row.id}>
@@ -172,9 +175,9 @@ export default function SensorHistoryPage() {
           }) : <EmptyState />}
         </div>
         <TableFooter
-          count={filteredRows.length}
+          count={totalItems}
           page={page}
-          maxPage={maxPage}
+          maxPage={totalPages}
           pageSize={pageSize}
           onPage={setPage}
           onPageSize={handlePageSizeChange}

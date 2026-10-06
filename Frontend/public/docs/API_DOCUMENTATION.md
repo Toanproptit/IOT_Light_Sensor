@@ -136,7 +136,7 @@ Response `401 Unauthorized`:
 ### 4.1. Lấy dữ liệu tổng quan
 
 ```http
-GET /api/dashboard/summary?roomId=ROOM_IOT_01
+GET /api/dashboard/summary
 ```
 
 Response `200 OK`:
@@ -146,7 +146,6 @@ Response `200 OK`:
   "success": true,
   "data": {
     "room": {
-      "id": "ROOM_IOT_01",
       "name": "Phòng IoT 01",
       "status": "online"
     },
@@ -179,7 +178,7 @@ Giá trị `type` được hỗ trợ:
 ### 5.1. Lấy dữ liệu cảm biến realtime
 
 ```http
-GET /api/sensors/realtime?roomId=ROOM_IOT_01
+GET /api/sensors/realtime
 ```
 
 Response `200 OK`:
@@ -188,7 +187,6 @@ Response `200 OK`:
 {
   "success": true,
   "data": {
-    "roomId": "ROOM_IOT_01",
     "readings": [
       {
         "sensorId": "TEMP_01",
@@ -224,21 +222,22 @@ Frontend có thể gọi API này mỗi 5–10 giây. Khi backend hỗ trợ Web
 ### 5.2. Lấy lịch sử cảm biến
 
 ```http
-GET /api/sensors/history?roomId=ROOM_IOT_01&search=TEMP&type=temperature&status=normal&from=2026-08-18T10:00:00&to=2026-08-18T11:00:00&page=1&limit=10
+GET /api/sensors/history?search=TEMP&type=temperature&status=normal&from=2026-08-18T10:00:00&to=2026-08-18T11:00:00&page=1&limit=10
 ```
 
 Query parameters:
 
 | Tham số | Bắt buộc | Mô tả |
 |---|---|---|
-| `roomId` | Có | ID phòng, mặc định dự án là `ROOM_IOT_01` |
 | `search` | Không | Tìm theo ID hoặc tên cảm biến |
+| `field`, `value` | Không | Lọc theo trường (`all`, `temperature`, `humidity`, `light`, `time`) và giá trị |
 | `type` | Không | `temperature`, `humidity`, `light` |
 | `status` | Không | `normal`, `warning`, `low` |
 | `from` | Không | Thời gian bắt đầu, định dạng `YYYY-MM-DDTHH:mm:ss` |
 | `to` | Không | Thời gian kết thúc, định dạng `YYYY-MM-DDTHH:mm:ss` |
 | `page` | Không | Trang hiện tại, mặc định `1` |
-| `limit` | Không | Số bản ghi mỗi trang, mặc định `10` |
+| `limit` | Không | Số bản ghi mỗi trang, mặc định `10`, tối đa `100` |
+| `direction` | Không | Thứ tự thời gian `asc` hoặc `desc`, mặc định `desc` |
 
 Response `200 OK`:
 
@@ -273,7 +272,7 @@ Response `200 OK`:
 ### 6.1. Lấy danh sách đèn LED
 
 ```http
-GET /api/devices?roomId=ROOM_IOT_01
+GET /api/devices
 ```
 
 Response `200 OK`:
@@ -286,7 +285,6 @@ Response `200 OK`:
       "id": "LED_01",
       "name": "LED 01",
       "type": "led",
-      "roomId": "ROOM_IOT_01",
       "isOn": true,
       "brightness": 80,
       "connectionStatus": "online",
@@ -296,7 +294,6 @@ Response `200 OK`:
       "id": "LED_02",
       "name": "LED 02",
       "type": "led",
-      "roomId": "ROOM_IOT_01",
       "isOn": true,
       "brightness": 60,
       "connectionStatus": "online",
@@ -306,7 +303,6 @@ Response `200 OK`:
       "id": "LED_03",
       "name": "LED 03",
       "type": "led",
-      "roomId": "ROOM_IOT_01",
       "isOn": false,
       "brightness": 35,
       "connectionStatus": "online",
@@ -407,7 +403,7 @@ Backend
 Topic backend publish:
 
 ```text
-iot/rooms/ROOM_IOT_01/devices/LED_01/commands
+home/esp32/command
 ```
 
 Payload:
@@ -424,7 +420,7 @@ Payload:
 Topic phần cứng phản hồi:
 
 ```text
-iot/rooms/ROOM_IOT_01/devices/LED_01/state
+home/esp32/status
 ```
 
 Payload:
@@ -449,7 +445,6 @@ Request body:
 
 ```json
 {
-  "roomId": "ROOM_IOT_01",
   "isOn": false
 }
 ```
@@ -472,20 +467,22 @@ Response `200 OK`:
 ### 7.1. Lấy lịch sử bật/tắt
 
 ```http
-GET /api/actions?roomId=ROOM_IOT_01&search=LED%2001&deviceId=LED_01&action=turn_on&status=success&from=2026-08-18T10:00:00&to=2026-08-18T11:00:00&page=1&limit=10
+GET /api/actions?search=LED%2001&deviceId=LED_01&action=turn_on&status=success&from=2026-08-18T10:00:00&to=2026-08-18T11:00:00&page=1&limit=10
 ```
 
 Query parameters:
 
 | Tham số | Bắt buộc | Mô tả |
 |---|---|---|
-| `roomId` | Có | ID phòng |
 | `search` | Không | Tìm theo mã hoặc tên LED |
 | `deviceId` | Không | Lọc theo LED |
+| `device` | Không | Lọc theo tên hoặc mã LED |
 | `action` | Không | `turn_on`, `turn_off`, `change_brightness` |
 | `status` | Không | `success`, `failed` |
 | `from`, `to` | Không | Khoảng thời gian cần lọc, định dạng `YYYY-MM-DDTHH:mm:ss` |
-| `page`, `limit` | Không | Thông tin phân trang |
+| `page` | Không | Trang hiện tại, mặc định `1` |
+| `limit` | Không | Số bản ghi mỗi trang, mặc định `10`, tối đa `100` |
+| `direction` | Không | Thứ tự thời gian `asc` hoặc `desc`, mặc định `desc` |
 
 Response `200 OK`:
 
@@ -568,7 +565,7 @@ Request body:
 ### 9.1. Xuất báo cáo
 
 ```http
-GET /api/reports?type=sensors&roomId=ROOM_IOT_01&from=2026-08-01&to=2026-08-18&format=csv
+GET /api/reports?type=sensors&from=2026-08-01&to=2026-08-18&format=csv
 ```
 
 Query parameters:
@@ -576,7 +573,6 @@ Query parameters:
 | Tham số | Giá trị hỗ trợ |
 |---|---|
 | `type` | `sensors`, `actions` |
-| `roomId` | `ROOM_IOT_01` |
 | `from`, `to` | Ngày bắt đầu và kết thúc |
 | `format` | `csv`, `xlsx`, `pdf` |
 

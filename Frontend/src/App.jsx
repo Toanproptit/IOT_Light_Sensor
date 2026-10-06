@@ -1,44 +1,67 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Toast from './components/common/Toast'
 import DashboardLayout from './components/layout/DashboardLayout'
 import ActivityHistoryPage from './features/activity/ActivityHistoryPage'
+import LoginPage from './features/auth/LoginPage'
 import OverviewPage from './features/overview/OverviewPage'
 import ProfilePage from './features/profile/ProfilePage'
 import SensorHistoryPage from './features/sensors/SensorHistoryPage'
-import { initialDevices } from './mocks/iotData'
+import { authSession } from './services/apiClient'
+import { iotApi } from './services/iotApi'
 
-function AppRoutes() {
-  const [devices, setDevices] = useState(initialDevices)
+function AppRoutes({ onLogout }) {
+  const [devices, setDevices] = useState([])
+  const [summary, setSummary] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState('')
 
-  const toggleDevice = (id) => {
+  const refreshOverview = useCallback(async (showError = false) => {
+    try {
+      const [nextSummary, nextDevices] = await Promise.all([
+        iotApi.getDashboard(),
+        iotApi.getDevices(),
+      ])
+      setSummary(nextSummary)
+      setDevices(nextDevices.map((device) => ({
+        ...device,
+        on: device.isOn,
+        room: nextSummary.room.name,
+      })))
+    } catch (error) {
+      if (showError && error.status !== 401) setToast(error.message)
+    }
+  }, [])
+
+  useEffect(() => {
+    const initialTimer = window.setTimeout(() => refreshOverview(true), 0)
+    const timer = window.setInterval(() => refreshOverview(false), 3000)
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(timer)
+    }
+  }, [refreshOverview])
+
+  const toggleDevice = async (id) => {
     const targetDevice = devices.find((device) => device.id === id)
     if (!targetDevice) return
-
-    setDevices((currentDevices) => currentDevices.map((device) => (
-      device.id === id ? { ...device, on: !device.on, updated: 'Vừa xong' } : device
-    )))
-    setToast(`${targetDevice.name} đã được ${targetDevice.on ? 'tắt' : 'bật'}`)
+    try {
+      await iotApi.controlDevice(id, !targetDevice.on, targetDevice.brightness)
+      await refreshOverview()
+      setToast(`${targetDevice.name} đã được ${targetDevice.on ? 'tắt' : 'bật'}`)
+    } catch (error) {
+      setToast(error.message)
+    }
   }
 
-  const turnAllDevicesOff = () => {
-    setDevices((currentDevices) => currentDevices.map((device) => ({
-      ...device,
-      on: false,
-      updated: 'Vừa xong',
-    })))
-    setToast('Đã tắt tất cả thiết bị')
-  }
-
-  const turnAllDevicesOn = () => {
-    setDevices((currentDevices) => currentDevices.map((device) => ({
-      ...device,
-      on: true,
-      updated: 'Vừa xong',
-    })))
-    setToast('Đã bật tất cả thiết bị')
+  const controlAllDevices = async (isOn) => {
+    try {
+      await iotApi.controlAll(isOn)
+      await refreshOverview()
+      setToast(`Đã ${isOn ? 'bật' : 'tắt'} tất cả thiết bị`)
+    } catch (error) {
+      setToast(error.message)
+    }
   }
 
   const closeToast = useCallback(() => setToast(''), [])
@@ -52,6 +75,7 @@ function AppRoutes() {
               sidebarOpen={sidebarOpen}
               onOpenMenu={() => setSidebarOpen(true)}
               onCloseMenu={() => setSidebarOpen(false)}
+              onLogout={onLogout}
             />
           )}
         >
@@ -59,16 +83,17 @@ function AppRoutes() {
             index
             element={(
               <OverviewPage
+                summary={summary}
                 devices={devices}
                 onToggle={toggleDevice}
-                onAllOn={turnAllDevicesOn}
-                onAllOff={turnAllDevicesOff}
+                onAllOn={() => controlAllDevices(true)}
+                onAllOff={() => controlAllDevices(false)}
               />
             )}
           />
           <Route path='sensors' element={<SensorHistoryPage />} />
           <Route path='history' element={<ActivityHistoryPage />} />
-          <Route path='profile' element={<ProfilePage />} />
+          <Route path='profile' element={<ProfilePage onNotify={setToast} />} />
           <Route path='*' element={<Navigate to='/' replace />} />
         </Route>
       </Routes>
@@ -78,9 +103,24 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(authSession.hasToken())
+
+  const handleLogout = useCallback(() => {
+    authSession.clear()
+    setAuthenticated(false)
+  }, [])
+
+  useEffect(() => {
+    const handleExpired = () => setAuthenticated(false)
+    window.addEventListener('lumina:auth-expired', handleExpired)
+    return () => window.removeEventListener('lumina:auth-expired', handleExpired)
+  }, [])
+
+  if (!authenticated) return <LoginPage onAuthenticated={() => setAuthenticated(true)} />
+
   return (
     <HashRouter>
-      <AppRoutes />
+      <AppRoutes onLogout={handleLogout} />
     </HashRouter>
   )
 }

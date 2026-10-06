@@ -9,13 +9,17 @@ import Toggle from '../../components/common/Toggle'
 import MetricCard from './components/MetricCard'
 import SensorChart from './components/SensorChart'
 
-export default function OverviewPage({ devices, onToggle, onAllOn, onAllOff }) {
+export default function OverviewPage({ summary, devices, onToggle, onAllOn, onAllOff }) {
+  const temperature = summary?.sensors?.temperature
+  const humidity = summary?.sensors?.humidity
+  const light = summary?.sensors?.light
+
   return (
     <div className="page overview-page">
       <div className="metrics-grid">
-        <MetricCard label="Nhiệt độ" value="28.5" unit="°C" trend="1.2°C" icon={Thermometer} tone="lime" />
-        <MetricCard label="Độ ẩm" value="72" unit="%" trend="3.1%" icon={Droplets} tone="green" />
-        <MetricCard label="Ánh sáng" value="850" unit="lux" trend="6.8%" icon={Sun} tone="yellow" />
+        <MetricCard label="Nhiệt độ" value={temperature?.value ?? '--'} unit={temperature?.unit ?? '°C'} icon={Thermometer} tone="lime" />
+        <MetricCard label="Độ ẩm" value={humidity?.value ?? '--'} unit={humidity?.unit ?? '%'} icon={Droplets} tone="green" />
+        <MetricCard label="Ánh sáng" value={light?.value ?? '--'} unit={light?.unit ?? 'digital'} icon={Sun} tone="yellow" />
       </div>
 
       <div className="dashboard-grid">

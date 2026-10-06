@@ -1,0 +1,24 @@
+# Maven
+target/
+
+# Local data
+data/
+
+# Logs
+*.log
+logs/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Environment
+.env
+.env.*
+
+# Java
+*.class
+
+# OS
+.DS_Store
+Thumbs.db

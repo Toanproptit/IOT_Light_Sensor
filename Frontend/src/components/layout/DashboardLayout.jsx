@@ -4,7 +4,7 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import { DEFAULT_PAGE, isValidPage } from '../../config/navigation'
 
-export default function DashboardLayout({ sidebarOpen, onOpenMenu, onCloseMenu }) {
+export default function DashboardLayout({ sidebarOpen, onOpenMenu, onCloseMenu, onLogout }) {
   const location = useLocation()
   const navigate = useNavigate()
   const pathPage = location.pathname.split('/').filter(Boolean)[0] || DEFAULT_PAGE
@@ -22,6 +22,7 @@ export default function DashboardLayout({ sidebarOpen, onOpenMenu, onCloseMenu }
         onNavigate={handleNavigate}
         open={sidebarOpen}
         onClose={onCloseMenu}
+        onLogout={onLogout}
       />
       <div className="main-shell">
         <Topbar page={activePage} onMenu={onOpenMenu} />

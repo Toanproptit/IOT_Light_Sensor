@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Bell,
   ChevronDown,
@@ -9,9 +9,36 @@ import {
 } from 'lucide-react'
 import { PAGE_TITLES } from '../../config/navigation'
 import profileImage from '../../features/profile/profile.jpg'
+import { iotApi } from '../../services/iotApi'
+
+const AVATAR_STORAGE_KEY = 'lumina_profile_avatar'
+const PROFILE_UPDATED_EVENT = 'lumina:profile-updated'
 
 export default function Topbar({ page, onMenu }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [profile, setProfile] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(() => localStorage.getItem(AVATAR_STORAGE_KEY) ?? profileImage)
+
+  useEffect(() => {
+    let active = true
+
+    iotApi.getProfile()
+      .then((data) => {
+        if (active) setProfile(data)
+      })
+      .catch(() => {})
+
+    const handleProfileUpdated = (event) => {
+      if (event.detail) setProfile((current) => ({ ...current, ...event.detail }))
+      if (event.detail?.avatarUrl) setAvatarUrl(event.detail.avatarUrl)
+    }
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated)
+
+    return () => {
+      active = false
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated)
+    }
+  }, [])
 
   return (
     <header className="topbar">
@@ -33,9 +60,9 @@ export default function Topbar({ page, onMenu }) {
         <div className="top-divider" />
         <button className="user-menu">
           <div className="avatar avatar-small">
-            <img src={profileImage} alt="Ảnh đại diện" />
+            <img src={avatarUrl} alt="Ảnh đại diện" />
           </div>
-          <div><strong>Trọng Toàn</strong><span>Sinh viên PTIT</span></div>
+          <div><strong>{profile?.fullName ?? 'Đang tải...'}</strong><span>{profile?.organization ?? 'Sinh viên PTIT'}</span></div>
           <ChevronDown size={15} />
         </button>
       </div>

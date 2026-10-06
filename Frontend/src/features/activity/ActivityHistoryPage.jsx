@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Lightbulb, Search } from 'lucide-react'
 import PageIntro from '../../components/common/PageIntro'
 import {
@@ -7,10 +7,8 @@ import {
   StatusBadge,
   TableFooter,
 } from '../../components/common/DataTable'
-import { activityRows } from '../../mocks/iotData'
-import { matchesTimeText } from '../../utils/dateTime'
-
-const DEVICE_OPTIONS = [...new Set(activityRows.map((row) => row.device))]
+import { iotApi } from '../../services/iotApi'
+import { formatApiDateTime } from '../../utils/dateTime'
 
 const getActionClassName = (actionName) => {
   if (actionName === 'Mất kết nối') return 'action-chip disconnected'
@@ -19,6 +17,10 @@ const getActionClassName = (actionName) => {
 }
 
 export default function ActivityHistoryPage() {
+  const [activityRows, setActivityRows] = useState([])
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [allDevices, setAllDevices] = useState([])
   const [device, setDevice] = useState('all')
   const [action, setAction] = useState('all')
   const [status, setStatus] = useState('all')
@@ -28,21 +30,49 @@ export default function ActivityHistoryPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(5)
 
-  const filteredRows = useMemo(() => activityRows.filter((row) => {
-    const deviceMatch = device === 'all' || row.device === device
-    const actionMatch = action === 'all' || row.action.toLowerCase().includes(action)
-    const statusMatch = status === 'all' || row.status === status
-    const timeMatch = matchesTimeText(row, appliedTimeQuery)
-    return deviceMatch && actionMatch && statusMatch && timeMatch
-  }), [device, action, status, appliedTimeQuery])
+  useEffect(() => {
+    let active = true
+    const load = () => iotApi.getActions({
+      page,
+      limit: pageSize,
+      direction: sortDirection,
+      ...(device !== 'all' ? { device } : {}),
+      ...(action !== 'all' ? { action } : {}),
+      ...(status !== 'all' ? { status } : {}),
+      ...(appliedTimeQuery ? { timeQuery: appliedTimeQuery } : {}),
+    }).then((result) => {
+      if (!active) return
+      setActivityRows(result.items.map((row) => ({
+        id: row.id,
+        device: row.deviceName,
+        room: 'Phòng IoT 01',
+        action: row.actionLabel,
+        status: row.status,
+        user: row.performedBy.name,
+        ...formatApiDateTime(row.createdAt),
+      })))
+      setTotalItems(result.pagination.totalItems)
+      setTotalPages(Math.max(1, result.pagination.totalPages))
+    }).catch(() => {
+      if (!active) return
+      setActivityRows([])
+      setTotalItems(0)
+      setTotalPages(1)
+    })
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [action, appliedTimeQuery, device, page, pageSize, sortDirection, status])
 
-  const sortedRows = useMemo(() => [...filteredRows].sort((firstRow, secondRow) => {
-    const comparison = Date.parse(firstRow.timestamp) - Date.parse(secondRow.timestamp)
-    return sortDirection === 'asc' ? comparison : -comparison
-  }), [filteredRows, sortDirection])
+  useEffect(() => {
+    let active = true
+    iotApi.getDevices().then((devices) => {
+      if (active) setAllDevices(devices.map((item) => item.name))
+    }).catch(() => {})
+    return () => { active = false }
+  }, [])
 
-  const maxPage = Math.max(1, Math.ceil(filteredRows.length / pageSize))
-  const visibleRows = sortedRows.slice((page - 1) * pageSize, page * pageSize)
+  const deviceOptions = useMemo(() => [...new Set(allDevices)], [allDevices])
 
   const updateFilter = (setter) => (event) => {
     setter(event.target.value)
@@ -93,7 +123,7 @@ export default function ActivityHistoryPage() {
           <label className="select-field">
             <select aria-label="Lọc theo tên thiết bị" value={device} onChange={updateFilter(setDevice)}>
               <option value="all">Tất cả thiết bị</option>
-              {DEVICE_OPTIONS.map((deviceName) => (
+              {deviceOptions.map((deviceName) => (
                 <option value={deviceName} key={deviceName}>{deviceName}</option>
               ))}
             </select>
@@ -134,7 +164,7 @@ export default function ActivityHistoryPage() {
           ]}
         />
         <div className="table-body history-table">
-          {visibleRows.length ? visibleRows.map((row) => (
+          {activityRows.length ? activityRows.map((row) => (
             <div className="table-row" key={row.id}>
               <span className="sensor-name">
                 <i className="sensor-dot device"><Lightbulb size={15} /></i>
@@ -148,9 +178,9 @@ export default function ActivityHistoryPage() {
           )) : <EmptyState />}
         </div>
         <TableFooter
-          count={filteredRows.length}
+          count={totalItems}
           page={page}
-          maxPage={maxPage}
+          maxPage={totalPages}
           pageSize={pageSize}
           onPage={setPage}
           onPageSize={handlePageSizeChange}

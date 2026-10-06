@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { chartLabels, chartSeries } from '../../../mocks/iotData'
+import { useEffect, useMemo, useState } from 'react'
+import { iotApi } from '../../../services/iotApi'
+import { formatApiDateTime } from '../../../utils/dateTime'
 
 const METRIC_CONFIG = {
   temperature: { label: 'Nhiệt độ', unit: '°C', color: '#b9ef38', min: 23, max: 31 },
   humidity: { label: 'Độ ẩm', unit: '%', color: '#33aa78', min: 60, max: 80 },
-  light: { label: 'Ánh sáng', unit: ' lux', color: '#dbff70', min: 200, max: 900 },
+  light: { label: 'Ánh sáng', unit: ' raw', color: '#dbff70', min: 0, max: 1 },
 }
 
 const METRIC_LABELS = {
@@ -15,11 +16,38 @@ const METRIC_LABELS = {
 
 export default function SensorChart() {
   const [metric, setMetric] = useState('temperature')
+  const [rows, setRows] = useState([])
   const config = METRIC_CONFIG[metric]
-  const values = chartSeries[metric]
+
+  useEffect(() => {
+    let active = true
+    const load = () => iotApi.getSensorHistory({
+      type: metric,
+      page: 1,
+      limit: 7,
+      direction: 'desc',
+    }).then((result) => {
+      if (active) setRows(result.items)
+    }).catch(() => {})
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [metric])
+
+  const samples = useMemo(() => rows
+    .filter((row) => row.type === metric)
+    .slice(0, 7)
+    .reverse(), [rows, metric])
+  const values = samples.map((row) => row.value)
+  const labels = samples.map((row) => formatApiDateTime(row.recordedAt).time.slice(0, 5))
+  const rangeMin = values.length ? Math.min(...values) : config.min
+  const rangeMax = values.length ? Math.max(...values) : config.max
+  const padding = rangeMax === rangeMin ? Math.max(Math.abs(rangeMax) * 0.1, 1) : (rangeMax - rangeMin) * 0.15
+  const min = rangeMin - padding
+  const max = rangeMax + padding
   const points = values.map((value, index) => {
-    const x = 36 + (index * 584) / (values.length - 1)
-    const y = 174 - ((value - config.min) / (config.max - config.min)) * 126
+    const x = values.length === 1 ? 328 : 36 + (index * 584) / (values.length - 1)
+    const y = 174 - ((value - min) / (max - min)) * 126
     return `${x},${y}`
   }).join(' ')
   const areaPoints = `36,190 ${points} 620,190`
@@ -27,7 +55,7 @@ export default function SensorChart() {
   return (
     <section className="card chart-card">
       <div className="section-head">
-        <div><h2>Biểu đồ cảm biến</h2><p>Dữ liệu 7 ngày gần nhất</p></div>
+        <div><h2>Biểu đồ cảm biến</h2><p>7 mẫu MQTT gần nhất</p></div>
         <div className="segmented">
           {Object.keys(METRIC_CONFIG).map((key) => (
             <button
@@ -41,11 +69,11 @@ export default function SensorChart() {
         </div>
       </div>
 
-      <div className="chart-wrap">
+      {values.length ? <div className="chart-wrap">
         <div className="chart-y-labels">
-          <span>{config.max}{config.unit}</span>
-          <span>{Math.round((config.max + config.min) / 2)}{config.unit}</span>
-          <span>{config.min}{config.unit}</span>
+          <span>{Math.round(max * 10) / 10}{config.unit}</span>
+          <span>{Math.round(((max + min) / 2) * 10) / 10}{config.unit}</span>
+          <span>{Math.round(min * 10) / 10}{config.unit}</span>
         </div>
         <svg viewBox="0 0 656 210" preserveAspectRatio="none" role="img" aria-label={`Biểu đồ ${config.label}`}>
           <defs>
@@ -73,9 +101,9 @@ export default function SensorChart() {
           })}
         </svg>
         <div className="chart-labels">
-          {chartLabels.map((label) => <span key={label}>{label}</span>)}
+          {labels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
         </div>
-      </div>
+      </div> : <div className="empty-state"><strong>Đang chờ dữ liệu MQTT</strong><span>Biểu đồ sẽ xuất hiện khi ESP32 gửi mẫu đầu tiên.</span></div>}
     </section>
   )
 }
